@@ -1,4 +1,5 @@
 %{
+#include <stdio.h>
 #include "y.tab.h"
 %}
 
@@ -12,10 +13,15 @@
 "("         { return LPAREN; }
 ")"         { return RPAREN; }
 [ \t\n]+    ;
-.           { printf("خطا: کاراکتر نامعتبر '%s'\n", yytext); }
+.           { printf("Invalid input'%s'\n", yytext); }
 
 %%
 
 int yywrap() {
     return 1;
+}
+
+int main() {
+    yylex();
+    return 0;
 }
