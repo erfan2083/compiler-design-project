@@ -1,6 +1,6 @@
 %{
 #include <stdio.h>
-#include "y.tab.h"
+#include "parse.tab.h"
 %}
 
 %%
@@ -21,7 +21,3 @@ int yywrap() {
     return 1;
 }
 
-int main() {
-    yylex();
-    return 0;
-}
