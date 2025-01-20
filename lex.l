@@ -5,7 +5,9 @@
 
 %%
 
+[a-zA-Z_][a-zA-Z0-9_]* { return IDENTIFIER; }
 [0-9]+      { yylval = atoi(yytext); return NUMBER; }
+"="         { return ASSIGN; }
 "+"         { return PLUS; }
 "-"         { return MINUS; }
 "*"         { return MULTIPLY; }
@@ -20,4 +22,3 @@
 int yywrap() {
     return 1;
 }
-
