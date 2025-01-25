@@ -6,89 +6,104 @@
 
 int temp_count = 1;
 void generate_code(char *result, char *op1, char *op, char *op2);
+int check_num(int num);
 void reverse_string(char *str);
 int yylex();
 int yyerror(const char *s);
 %}
 
-%token IDENTIFIER NUMBER ASSIGN PLUS MINUS MULTIPLY DIVIDE LPAREN RPAREN
+%union {
+    char* string;   
+    int number;     
+}
 
-%right PLUS MINUS  /* جمع و تفریق از راست به چپ */
-%left MULTIPLY DIVIDE  /* ضرب و تقسیم از چپ به راست */
+%token <string> IDENTIFIER 
+%token <number> NUMBER 
+%token ASSIGN PLUS MINUS MULTIPLY DIVIDE LPAREN RPAREN SEMICOLON
+
+%type <number> input
+%type <number> statement
+%type <number> expression
+%type <number> term
+%type <number> factor
+
+%right PLUS MINUS
+%left MULTIPLY DIVIDE
 
 %%
 
-input: 
-    | input statement '\n' { /* پایان خط */ }
-;
+input:
+    statement { 
+        printf("Resualt = %d\n", $1);
+    }
 
 statement:
-    IDENTIFIER ASSIGN expression {
-        printf("%s = t%d;\n", $1, $3);
-        printf("value = %d\n", $3);  /* چاپ مقدار نهایی */
+    IDENTIFIER ASSIGN expression SEMICOLON {
+        printf("%s = t%d;\n",$1 , temp_count - 1);
+        $$ = $3;
     }
 ;
 
+
 expression:
-    NUMBER {
-        int num = $1;
-        if (num % 10 != 0) {  // معکوس کردن اعداد غیر از مضرب 10
-            char str[10];
-            sprintf(str, "%d", num);
-            reverse_string(str);
-            num = atoi(str);
-        }
-        $$ = num;  // مقدار عدد
-        printf("t%d = %d;\n", temp_count, num);  // تولید کد سه‌آدرسی
-        $$ = temp_count++;
+
+    expression MULTIPLY factor{
+        char op1[10], op2[10], result[10];
+        sprintf(op1, "%d", $1);
+        sprintf(op2, "%d", $3);
+        sprintf(result, "t%d", temp_count++);
+        generate_code(result, op1, "*", op2);
+        $$ = check_num($1 * $3);
     }
 
-    | expression PLUS expression {
-        char result[10];
-        sprintf(result, "t%d", temp_count);
-        printf("%s = t%d + t%d;\n", result, $1, $3);
-        $$ = $1 + $3;  // محاسبه مقدار نهایی جمع
-        temp_count++;
+    | expression DIVIDE factor {
+        char op1[10], op2[10], result[10];
+        sprintf(op1, "%d", $1);
+        sprintf(op2, "%d", $3);
+        sprintf(result, "t%d", temp_count++);
+        generate_code(result, op1, "/", op2);
+        $$ = check_num($1 / $3);
     }
 
-    | expression MINUS expression {
-        char result[10];
-        sprintf(result, "t%d", temp_count);
-        printf("%s = t%d - t%d;\n", result, $1, $3);
-        $$ = $1 - $3;  // محاسبه مقدار نهایی تفریق
-        temp_count++;
+    | factor {
+        $$ = $1;
+    }
+;
+
+
+factor:
+
+    term PLUS factor {
+        char op1[10], op2[10], result[10];
+        sprintf(op1, "%d", $1);
+        sprintf(op2, "%d", $3);
+        sprintf(result, "t%d", temp_count++);
+        generate_code(result, op1, "+", op2);
+        $$ = check_num($1 + $3);
     }
 
-    | expression MULTIPLY expression {
-        char result[10];
-        sprintf(result, "t%d", temp_count);
-        printf("%s = t%d * t%d;\n", result, $1, $3);
-        $$ = $1 * $3;  // محاسبه مقدار نهایی ضرب
-        temp_count++;
+    | term MINUS factor {
+        char op1[10], op2[10], result[10];
+        sprintf(op1, "%d", $1);
+        sprintf(op2, "%d", $3);
+        sprintf(result, "t%d", temp_count++);
+        generate_code(result, op1, "-", op2);
+        $$ = check_num($1 - $3);
     }
 
-    | expression DIVIDE expression {
-        char result[10];
-        sprintf(result, "t%d", temp_count);
-        if ($3 != 0) {
-            printf("%s = t%d / t%d;\n", result, $1, $3);
-            $$ = $1 / $3;  // محاسبه مقدار نهایی تقسیم
-            temp_count++;
-        } else {
-            yyerror("تقسیم بر صفر مجاز نیست!");
-        }
+    | term {
+        $$ = $1;
     }
+;
 
-    | LPAREN expression RPAREN {
-        $$ = $2;  // مقدار داخل پرانتز
+term:
+
+    LPAREN expression RPAREN {
+        $$ = $2;
     }
-
-    | MINUS expression %prec UMINUS {
-        char result[10];
-        sprintf(result, "t%d", temp_count);
-        printf("%s = -t%d;\n", result, $2);
-        $$ = -$2;  // اعمال منفی کردن
-        temp_count++;
+    
+    | NUMBER {
+        $$ = check_num($1);
     }
 ;
 
@@ -98,9 +113,21 @@ void generate_code(char *result, char *op1, char *op, char *op2) {
     printf("%s = %s %s %s;\n", result, op1, op, op2);
 }
 
+int check_num(int num){
+        if (num % 10 != 0) {
+            char str[10];
+            sprintf(str, "%d", num);
+            reverse_string(str);
+            num = atoi(str);
+            return num;
+        }
+    return num;
+}
+
 void reverse_string(char *str) {
     int len = strlen(str);
     for (int i = 0; i < len / 2; i++) {
+        if(str[i] == '-') continue;
         char temp = str[i];
         str[i] = str[len - i - 1];
         str[len - i - 1] = temp;
